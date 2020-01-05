@@ -1,6 +1,7 @@
 package com.github.steven.core;
 
 
+import com.github.steven.util.LogUtil;
 import org.apache.catalina.connector.CoyoteWriter;
 import org.apache.catalina.connector.OutputBuffer;
 import org.apache.commons.lang3.StringUtils;
@@ -12,6 +13,7 @@ import org.objectweb.asm.*;
 import org.objectweb.asm.commons.AdviceAdapter;
 import org.objectweb.asm.commons.JSRInlinerAdapter;
 import org.objectweb.asm.commons.Method;
+import org.slf4j.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -30,6 +32,7 @@ import java.util.Map;
 public class AdviceWeaver extends ClassVisitor implements Opcodes {
 
 	private final String javaClassName;
+	private final static Logger logger = LogUtil.getLogger();
 
 	public static java.lang.reflect.Method onBeforeMethod;
 	public static java.lang.reflect.Method onReturnMethod;
@@ -48,24 +51,24 @@ public class AdviceWeaver extends ClassVisitor implements Opcodes {
 			if (arg instanceof HttpServletRequest) {
 
 				HttpServletRequest request = (HttpServletRequest) arg;
-				System.out.println("request:" + request.getRequestURI());
+				logger.info("request:" + request.getRequestURI());
 
 				Enumeration<String> headerNames = request.getHeaderNames();
-				System.out.println("headers");
+				logger.info("headers");
 				while (headerNames.hasMoreElements()) {
 					String headerName = headerNames.nextElement();
 					String headerValue = request.getHeaders(headerName).nextElement();
 
-					System.out.println(headerName + ":" + headerValue);
+					logger.info(headerName + ":" + headerValue);
 
 				}
 
 				Map<String, String[]> parameterMap = request.getParameterMap();
-				System.out.println("parameter");
+				logger.info("parameter");
 				for (Map.Entry<String, String[]> map : parameterMap.entrySet()) {
 					String key = map.getKey();
 					String[] value = map.getValue();
-					System.out.println(key + ":" + value[0]);
+					logger.info(key + ":" + value[0]);
 
 				}
 			}
@@ -73,7 +76,7 @@ public class AdviceWeaver extends ClassVisitor implements Opcodes {
 			if (arg instanceof HttpServletResponse) {
 				if ("org.eclipse.jetty.server.Response".equals(arg.getClass().getName())) {
 					//jetty
-					System.out.println("response:");
+					logger.info("response:");
 					HttpServletResponse response = (Response) arg;
 					ResponseWriter writer = (ResponseWriter) response.getWriter();
 					Class<?> clazz = writer.getClass();
@@ -86,10 +89,10 @@ public class AdviceWeaver extends ClassVisitor implements Opcodes {
 					Object object = fieldBytes.get(printWriter);
 					ByteArrayOutputStream2 object1 = (ByteArrayOutputStream2) object;
 
-					System.out.println(object1.toString("UTF-8"));
+					logger.info(object1.toString("UTF-8"));
 				} else {
 					//tomcat
-					System.out.println("response:");
+					logger.info("response:");
 					HttpServletResponse httpServletResponse = (HttpServletResponse) arg;
 					CoyoteWriter cw = (CoyoteWriter) (httpServletResponse.getWriter());
 					Class<?> clazz = cw.getClass();
@@ -101,7 +104,7 @@ public class AdviceWeaver extends ClassVisitor implements Opcodes {
 					fieldOutputChunk.setAccessible(true);
 					Object object = fieldOutputChunk.get(ob);
 
-					System.out.println(object);
+					logger.info(object.toString());
 				}
 			}
 		}

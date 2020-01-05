@@ -1,8 +1,11 @@
 package com.github.steven;
 
 import com.github.steven.core.Enhancer;
+import com.github.steven.core.ResetEnhancer;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
+import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.Instrumentation;
 import java.util.HashSet;
 import java.util.Set;
@@ -16,6 +19,11 @@ public class AgentLauncher {
 
 	public static void agentmain(String args, Instrumentation inst) throws IOException {
 
+		String[] splitArgs = args.split(";");
+
+		String action = splitArgs[0];
+		String className =splitArgs[1];
+
 		Set<Class<?>> transformSet = new HashSet<>();
 
 		Class[] allLoadedClasses = inst.getAllLoadedClasses();
@@ -24,12 +32,18 @@ public class AgentLauncher {
 				continue;
 			}
 
-			if (clazz.getName().equals("com.steven.springboothelloworld.controller.HelloController")) {
+			if (clazz.getName().equals(className)) {
 				transformSet.add(clazz);
 			}
 		}
 		System.out.println("transformSet.size:"+transformSet.size());
-		Enhancer enhancer = new Enhancer(transformSet);
+		ClassFileTransformer enhancer;
+		if (StringUtils.equals(action, Main.hotLogEnable.toString())) {
+			enhancer = new Enhancer(transformSet);
+		}else {
+			enhancer = new ResetEnhancer();
+		}
+
 		inst.addTransformer(enhancer, true);
 		try {
 			for (Class<?> clazz : transformSet) {
