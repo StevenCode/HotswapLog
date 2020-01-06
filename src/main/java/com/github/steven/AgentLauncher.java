@@ -21,8 +21,8 @@ public class AgentLauncher {
 
 		String[] splitArgs = args.split(";");
 
-		String action = splitArgs[0];
-		String className =splitArgs[1];
+		String className =splitArgs[0];
+		String action = splitArgs[1];
 
 		Set<Class<?>> transformSet = new HashSet<>();
 

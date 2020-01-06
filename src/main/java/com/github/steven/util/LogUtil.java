@@ -22,7 +22,7 @@ public class LogUtil {
         loggerContext.reset();
         try {
 
-            configurator.doConfigure(LogUtil.class.getResourceAsStream("hotswaplog-logback.xml"));
+            configurator.doConfigure(LogUtil.class.getResourceAsStream("/hotswaplog-logback.xml"));
         } catch (JoranException e) {
             throw new RuntimeException("load logback config failed, you need restart greys", e);
         } finally {

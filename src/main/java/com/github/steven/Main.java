@@ -1,21 +1,17 @@
 package com.github.steven;
 
-import com.sun.tools.attach.AgentInitializationException;
-import com.sun.tools.attach.AgentLoadException;
-import com.sun.tools.attach.AttachNotSupportedException;
-import com.sun.tools.attach.VirtualMachine;
+
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 
 import java.io.File;
-import java.io.IOException;
 
 public class Main {
     public static final String jarName = "HotswapLog-1.0-SNAPSHOT-jar-with-dependencies.jar";
 
     public static final Integer hotLogEnable = 1;
 
-    public static void main(String[] args) throws IOException, AttachNotSupportedException, AgentLoadException, AgentInitializationException {
+    public static void main(String[] args) throws Exception {
         String path = System.getProperty("user.dir");
         String jarFilePath = path + File.separator + jarName;
 
@@ -32,8 +28,20 @@ public class Main {
         configure.setLogEnable((Integer) os.valueOf("logEnable"));
         configure.setJarPath(jarFilePath);
 
-        VirtualMachine vm = VirtualMachine.attach(String.valueOf(configure.getJavaPid())); // 目标 JVM pid
-        vm.loadAgent(configure.getJarPath(),configure.getClassName()+";"+configure.getLogEnable());
-        vm.detach();
+        final ClassLoader loader = Thread.currentThread().getContextClassLoader();
+        final Class<?> vmdClass = loader.loadClass("com.sun.tools.attach.VirtualMachineDescriptor");
+        final Class<?> vmClass = loader.loadClass("com.sun.tools.attach.VirtualMachine");
+
+        Object vmObj = null;
+        try {
+            // 使用 attach(String pid) 这种方式
+                vmObj = vmClass.getMethod("attach", String.class).invoke(null, "" + configure.getJavaPid());
+
+            vmClass.getMethod("loadAgent", String.class, String.class).invoke(vmObj, configure.getJarPath(),configure.getClassName()+";"+configure.getLogEnable());
+        } finally {
+            if (null != vmObj) {
+                vmClass.getMethod("detach", (Class<?>[]) null).invoke(vmObj, (Object[]) null);
+            }
+        }
     }
 }
