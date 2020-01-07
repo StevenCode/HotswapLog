@@ -29,19 +29,16 @@ public class Main {
         configure.setJarPath(jarFilePath);
 
         final ClassLoader loader = Thread.currentThread().getContextClassLoader();
-        final Class<?> vmdClass = loader.loadClass("com.sun.tools.attach.VirtualMachineDescriptor");
         final Class<?> vmClass = loader.loadClass("com.sun.tools.attach.VirtualMachine");
 
-        Object vmObj = null;
-        try {
-            // 使用 attach(String pid) 这种方式
-                vmObj = vmClass.getMethod("attach", String.class).invoke(null, "" + configure.getJavaPid());
-
-            vmClass.getMethod("loadAgent", String.class, String.class).invoke(vmObj, configure.getJarPath(),configure.getClassName()+";"+configure.getLogEnable());
-        } finally {
-            if (null != vmObj) {
-                vmClass.getMethod("detach", (Class<?>[]) null).invoke(vmObj, (Object[]) null);
-            }
-        }
+		Object vmObj = null;
+		try {
+			vmObj = vmClass.getMethod("attach", String.class).invoke(null, "" + configure.getJavaPid());
+			vmClass.getMethod("loadAgent", String.class, String.class).invoke(vmObj, configure.getJarPath(),configure.getClassName()+";"+configure.getLogEnable());
+		} finally {
+			if (null != vmObj) {
+				vmClass.getMethod("detach", (Class<?>[]) null).invoke(vmObj, (Object[]) null);
+			}
+		}
     }
 }
