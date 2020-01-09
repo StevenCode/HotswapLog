@@ -33,7 +33,33 @@ public class Enhancer implements ClassFileTransformer {
 			return null;
 		}
 		ClassReader reader = new ClassReader(classfileBuffer);
-		ClassWriter classWriter = new ClassWriter(ClassWriter.COMPUTE_FRAMES | COMPUTE_MAXS);
+		ClassWriter classWriter = new ClassWriter(reader,ClassWriter.COMPUTE_FRAMES | COMPUTE_MAXS){
+			@Override
+			protected String getCommonSuperClass(String type1, String type2) {
+				Class<?> c, d;
+				try {
+					c = Class.forName(type1.replace('/', '.'), false, loader);
+					d = Class.forName(type2.replace('/', '.'), false, loader);
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+				if (c.isAssignableFrom(d)) {
+					return type1;
+				}
+				if (d.isAssignableFrom(c)) {
+					return type2;
+				}
+				if (c.isInterface() || d.isInterface()) {
+					return "java/lang/Object";
+				} else {
+					do {
+						c = c.getSuperclass();
+					} while (!c.isAssignableFrom(d));
+					return c.getName().replace('.', '/');
+				}
+			}
+
+		};
 		ClassVisitor classVisitor = new AdviceWeaver(reader.getClassName(), Opcodes.ASM5, classWriter);
 		reader.accept(classVisitor, ClassReader.EXPAND_FRAMES);
 		return classWriter.toByteArray();
