@@ -1,9 +1,9 @@
 package com.github.steven.core;
 
 
-import com.github.steven.util.LogUtil;
-import org.apache.catalina.connector.CoyoteWriter;
-import org.apache.catalina.connector.OutputBuffer;
+import com.github.steven.core.util.LogUtil;
+//import org.apache.catalina.connector.CoyoteWriter;
+//import org.apache.catalina.connector.OutputBuffer;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jetty.server.HttpWriter;
 import org.eclipse.jetty.server.Response;
@@ -34,27 +34,28 @@ public class AdviceWeaver extends ClassVisitor implements Opcodes {
 	private final String javaClassName;
 	private final static Logger logger = LogUtil.getLogger();
 
-	public static java.lang.reflect.Method onBeforeMethod;
-	public static java.lang.reflect.Method onReturnMethod;
-
 	public static void methodOnEnd(
 			Object returnObject) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-
+		if (returnObject != null) {
+			logger.info("return ----------");
+			logger.info(returnObject.toString());
+		}
 	}
 
 	public static void methodOnBegin(
 			ClassLoader loader, String className, String methodName, String methodDesc,
 			Object target, Object[] args) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException, IOException, NoSuchFieldException {
-
 		for (Object arg : args) {
 
 			if (arg instanceof HttpServletRequest) {
 
 				HttpServletRequest request = (HttpServletRequest) arg;
-				logger.info("request:" + request.getRequestURI());
+				logger.info("request ----------");
+				logger.info("uri:" + request.getRequestURI());
+				logger.info("\n");
 
 				Enumeration<String> headerNames = request.getHeaderNames();
-				logger.info("headers");
+				logger.info("headers:{");
 				while (headerNames.hasMoreElements()) {
 					String headerName = headerNames.nextElement();
 					String headerValue = request.getHeaders(headerName).nextElement();
@@ -62,21 +63,23 @@ public class AdviceWeaver extends ClassVisitor implements Opcodes {
 					logger.info(headerName + ":" + headerValue);
 
 				}
+				logger.info("}\n");
 
 				Map<String, String[]> parameterMap = request.getParameterMap();
-				logger.info("parameter");
+				logger.info("parameter:{");
 				for (Map.Entry<String, String[]> map : parameterMap.entrySet()) {
 					String key = map.getKey();
 					String[] value = map.getValue();
 					logger.info(key + ":" + value[0]);
 
 				}
+				logger.info("}\n");
 			}
 
 			if (arg instanceof HttpServletResponse) {
 				if ("org.eclipse.jetty.server.Response".equals(arg.getClass().getName())) {
 					//jetty
-					logger.info("response:");
+					logger.info("response ----------");
 					HttpServletResponse response = (Response) arg;
 					ResponseWriter writer = (ResponseWriter) response.getWriter();
 					Class<?> clazz = writer.getClass();
@@ -90,43 +93,27 @@ public class AdviceWeaver extends ClassVisitor implements Opcodes {
 					ByteArrayOutputStream2 object1 = (ByteArrayOutputStream2) object;
 
 					logger.info(object1.toString("UTF-8"));
+					logger.info("\n");
 				} else {
 					//tomcat
-					logger.info("response:");
-					HttpServletResponse httpServletResponse = (HttpServletResponse) arg;
-					CoyoteWriter cw = (CoyoteWriter) (httpServletResponse.getWriter());
-					Class<?> clazz = cw.getClass();
-					Field declaredField = clazz.getDeclaredField("ob");
-					declaredField.setAccessible(true);
-					OutputBuffer ob = (OutputBuffer) declaredField.get(cw);
-					Class<?> classOutputBuffer = ob.getClass();
-					Field fieldOutputChunk = classOutputBuffer.getDeclaredField("cb");
-					fieldOutputChunk.setAccessible(true);
-					Object object = fieldOutputChunk.get(ob);
-
-					logger.info(object.toString());
+//					logger.info();();("response:");
+//					HttpServletResponse httpServletResponse = (HttpServletResponse) arg;
+//					CoyoteWriter cw = (CoyoteWriter) (httpServletResponse.getWriter());
+//					Class<?> clazz = cw.getClass();
+//					Field declaredField = clazz.getDeclaredField("ob");
+//					declaredField.setAccessible(true);
+//					OutputBuffer ob = (OutputBuffer) declaredField.get(cw);
+//					Class<?> classOutputBuffer = ob.getClass();
+//					Field fieldOutputChunk = classOutputBuffer.getDeclaredField("cb");
+//					fieldOutputChunk.setAccessible(true);
+//					Object object = fieldOutputChunk.get(ob);
+//
+//					logger.info();();(object.toString());
 				}
 			}
 		}
 	}
 
-	static {
-
-
-		try {
-			onBeforeMethod = AdviceWeaver.class.getMethod("methodOnBegin",
-					ClassLoader.class,
-					String.class,
-					String.class,
-					String.class,
-					Object.class,
-					Object[].class);
-			onReturnMethod = AdviceWeaver.class.getMethod("methodOnEnd",
-					Object.class);
-		} catch (NoSuchMethodException e) {
-			e.printStackTrace();
-		}
-	}
 
 	AdviceWeaver(final String internalClassName, int api, ClassVisitor classVisitor) {
 		super(api, classVisitor);
@@ -162,7 +149,7 @@ public class AdviceWeaver extends ClassVisitor implements Opcodes {
 
 		return new AdviceAdapter(ASM5, new JSRInlinerAdapter(mv, access, name, desc, signature, exceptions), access, name, desc) {
 
-			private final Type ASM_TYPE_SPY = Type.getType("Lcom/github/steven/core/AdviceWeaver;");
+			private final Type ASM_TYPE_SPY = Type.getType("Lcom/github/steven/agent/Spy;");
 			private final Type ASM_TYPE_OBJECT = Type.getType(Object.class);
 			private final Type ASM_TYPE_OBJECT_ARRAY = Type.getType(Object[].class);
 			private final Type ASM_TYPE_CLASS = Type.getType(Class.class);
@@ -208,7 +195,7 @@ public class AdviceWeaver extends ClassVisitor implements Opcodes {
 				_debug(append, "loadReturn()");
 
 				// 加载before方法
-				getStatic(ASM_TYPE_SPY, "onReturnMethod", ASM_TYPE_METHOD);
+				getStatic(ASM_TYPE_SPY, "ON_RETURN_METHOD", ASM_TYPE_METHOD);
 				_debug(append, "loadAdviceMethod()");
 
 				// 推入Method.invoke()的第一个参数
@@ -226,7 +213,7 @@ public class AdviceWeaver extends ClassVisitor implements Opcodes {
 				_debug(append, "debug:onMethodEnter()");
 
 				// 加载before方法
-				getStatic(ASM_TYPE_SPY, "onBeforeMethod", ASM_TYPE_METHOD);
+				getStatic(ASM_TYPE_SPY, "ON_BEFORE_METHOD", ASM_TYPE_METHOD);
 				_debug(append, "loadAdviceMethod()");
 
 				// 推入Method.invoke()的第一个参数

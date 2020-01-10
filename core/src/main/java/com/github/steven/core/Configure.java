@@ -1,9 +1,8 @@
-package com.github.steven;
+package com.github.steven.core;
 
 public class Configure {
     private int javaPid;                    // 对方java进程号
     private String className;
-    private String jarPath;
     private int logEnable;
 
     public int getJavaPid() {
@@ -20,14 +19,6 @@ public class Configure {
 
     public void setClassName(String className) {
         this.className = className;
-    }
-
-    public String getJarPath() {
-        return jarPath;
-    }
-
-    public void setJarPath(String jarPath) {
-        this.jarPath = jarPath;
     }
 
     public int getLogEnable() {
