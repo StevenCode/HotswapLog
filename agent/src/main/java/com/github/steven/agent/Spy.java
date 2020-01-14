@@ -56,4 +56,14 @@ public class Spy {
         }
     }
 
+    public static void spyMethodOnBefore( Object[] arg, String className, String methodName, String methodDesc,
+                                          Object targets) {
+        try {
+            ON_BEFORE_METHOD.invoke(null, className, methodName, methodDesc, targets,arg);
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }
+    }
 }

@@ -37,7 +37,6 @@ public class AgentLauncher {
 
 		Spy.initForAgentLauncher(agentLoader,
 				adviceWeaverClass.getMethod("methodOnBegin",
-						ClassLoader.class,
 						String.class,
 						String.class,
 						String.class,
